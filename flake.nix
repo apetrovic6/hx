@@ -31,19 +31,8 @@
       }: let
         toml = pkgs.formats.toml {};
 
-        # --- languages.toml (YAML test) ---
-        cfgLangs = pkgs.writeText "helix-languages.toml" ''
-          [[language]]
-          name = "yaml"
-          file-types = ["yaml", "yml"]
-          language-servers = ["yaml-language-server"]
+        cfgLangs = (builtins.toString ./languages/default.toml);
 
-          [language-server.yaml-language-server]
-          command = "yaml-language-server"
-          args = ["--stdio"]
-        '';
-
-        # --- your base settings (editor + keys) ---
         baseSettings = import ./settings.nix {inherit lib pkgs;};
 
         cfgStylix = toml.generate "helix-config-stylix" (baseSettings // {theme = "stylix";});

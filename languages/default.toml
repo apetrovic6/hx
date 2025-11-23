@@ -7,7 +7,6 @@ language-servers = ["yaml-language-server"]
 command = "yaml-language-server"
 args = ["--stdio"]
 
-
 # This becomes initializationOptions.yaml in yaml-language-server
 [language-server.yaml-language-server.config.yaml]
 validate = true
