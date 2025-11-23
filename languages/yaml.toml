@@ -1,0 +1,38 @@
+[[language]]
+name = "yaml"
+file-types = ["yaml", "yml"]
+language-servers = ["yaml-language-server"]
+
+[language-server.yaml-language-server]
+command = "yaml-language-server"
+args = ["--stdio"]
+
+
+# This becomes initializationOptions.yaml in yaml-language-server
+[language-server.yaml-language-server.config.yaml]
+validate = true
+hover = true
+completion = true
+
+[language-server.yaml-language-server.config.yaml.format]
+enable = true
+
+# yaml.schemas.kubernetes = ["**/*.yaml", "**/*.yml"]
+[language-server.yaml-language-server.config.yaml.schemas]
+kubernetes = [ "*deployment*.yaml",
+ "*service*.yaml",
+"*.y{a,}ml",
+ "*configmap*.yaml",
+ "*secret*.yaml",
+ "*pod*.yaml",
+ "*namespace*.yaml",
+ "*ingress*.yaml" 
+]
+"https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json" = [
+  "*kustomization.yaml",
+  "*kustomize.yaml"
+]
+"https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json" = [
+  "*workflow*.yaml",
+  "*template*.yaml"
+]
