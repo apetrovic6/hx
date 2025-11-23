@@ -1,20 +1,22 @@
-{ lib, pkgs }:
 {
+  lib,
+  pkgs,
+}: {
   editor = {
     bufferline = "multiple";
     "color-modes" = true;
     "true-color" = true;
     "auto-pairs" = false;
     "line-number" = "relative";
-    "inline-diagnostics" = { "cursor-line" = "hint"; };
+    "inline-diagnostics" = {"cursor-line" = "hint";};
     "cursor-shape" = {
       insert = "bar";
       normal = "block";
       select = "underline";
     };
     statusline = {
-      left  = [ "mode" "spinner" "file-name" ];
-      right = [ "diagnostics" "selections" "position" "file-encoding" "file-line-ending" "file-type" ];
+      left = ["mode" "spinner" "file-name"];
+      right = ["diagnostics" "selections" "position" "file-encoding" "file-line-ending" "file-type"];
       separator = "│";
     };
   };

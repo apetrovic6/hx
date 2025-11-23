@@ -33,47 +33,12 @@
       }: let
         toml = pkgs.formats.toml {};
 
-        baseSettings = {
-          # everything except the theme
-          editor = {
-            bufferline = "multiple";
-            "color-modes" = true;
-            "true-color" = true;
-            "auto-pairs" = false;
-            "line-number" = "relative";
-            "inline-diagnostics" = {"cursor-line" = "hint";};
-            "cursor-shape" = {
-              insert = "bar";
-              normal = "block";
-              select = "underline";
-            };
-            statusline = {
-              left = ["mode" "spinner" "file-name"];
-              right = ["diagnostics" "selections" "position" "file-encoding" "file-line-ending" "file-type"];
-              separator = "│";
-            };
-          };
-          keys.normal = {
-            "C-g" = [
-              ":new"
-              ":insert-output ${lib.getExe pkgs.lazygit}"
-              ":buffer-close!"
-              ":redraw"
-            ];
-            "C-y" = [
-              ":sh rm -f /tmp/unique-file"
-              ":insert-output ${lib.getExe pkgs.yazi} %{buffer_name} --chooser-file=/tmp/unique-file"
-              ":insert-output echo \"\\x1b[?1049h\\x1b[?2004h\" > /dev/tty"
-              ":open %sh{cat /tmp/unique-file}"
-              ":redraw"
-            ];
-          };
-        };
+        # ⬇️ NEW: import editor + keys from a separate file
+        baseSettings = import ./settings.nix {inherit lib pkgs;};
 
         cfgStylix = toml.generate "helix-config-stylix" (baseSettings // {theme = "stylix";});
         cfgFallback = toml.generate "helix-config-fallback" (baseSettings // {theme = "gruvbox";});
 
-        # your existing wrappers build (keep $HOME config visible)
         wrapped = inputs.wrappers.wrapperModules.helix.apply {
           config = {
             inherit pkgs;
@@ -82,9 +47,7 @@
           };
         };
 
-        # write a smart launcher that chooses config at runtime
         launcher = pkgs.writeShellScriptBin "hx" ''
-          # make sure Helix can see user config/themes
           unset HELIX_RUNTIME
           export XDG_CONFIG_HOME="$HOME/.config"
 
@@ -98,7 +61,7 @@
         packages.default = launcher;
         treefmt = {
           projectRootFile = "flake.nix";
-          programs.alejandra.enable = true; # Nix formatter
+          programs.alejandra.enable = true;
         };
       };
     };
