@@ -29,59 +29,37 @@
         system,
         ...
       }: let
-        toml = pkgs.formats.toml {};
+toml = pkgs.formats.toml {};
 
-        cfgLangs = (builtins.toString ./languages/default.toml);
+  # path to your languages config
+  cfgLangs = ./languages/default.toml;
 
-        baseSettings = import ./settings.nix {inherit lib pkgs;};
+  baseSettings = import ./settings.nix { inherit lib pkgs; };
 
-        cfgStylix = toml.generate "helix-config-stylix" (baseSettings // {theme = "stylix";});
-        cfgFallback = toml.generate "helix-config-fallback" (baseSettings // {theme = "gruvbox";});
+  # 🔧 hard-coded Helix theme name (must exist in Helix)
+  themeName = "everforest_dark";  # or "base16_default_dark", "tokyonight", etc.
 
-        wrapped = inputs.wrappers.wrapperModules.helix.apply {
-          config = {
-            inherit pkgs;
-            settings = baseSettings // {theme = "stylix";};
-            env.XDG_CONFIG_HOME = lib.mkForce "\$HOME/.config";
-          };
-        };
+  cfg = toml.generate "helix-config" (baseSettings // {
+    theme = themeName;
+  });
 
-        launcher = pkgs.writeShellScriptBin "hx" ''
-          set -euo pipefail
+  launcher = pkgs.writeShellScriptBin "hx" ''
+    set -euo pipefail
 
-          # export PATH="${pkgs.nodePackages.yaml-language-server}/bin:${pkgs.nodejs}/bin:$PATH"
+    # Use a fresh temporary XDG config dir each run
+    tmpcfg="$(mktemp -d)"
+    mkdir -p "$tmpcfg/helix"
 
-          if [ -f "$HOME/.config/helix/themes/stylix.toml" ]; then
-            cfgFile='${cfgStylix}'
-          else
-            cfgFile='${cfgFallback}'
-          fi
+    # Symlink generated config + languages.toml into the temp config dir
+    ln -s '${cfg}'      "$tmpcfg/helix/config.toml"
+    ln -s '${cfgLangs}' "$tmpcfg/helix/languages.toml"
 
-          tmpcfg=""
-          if tmpcfg="$(mktemp -d 2>/dev/null)"; then
-            :
-          elif tmpcfg="$(mktemp -d -t hxcfg 2>/dev/null)"; then
-            :
-          else
-            base="${TMPDIR:-/tmp}"
-            mkdir -p "$base"
-            tmpcfg="$base/hxcfg.$RANDOM.$RANDOM.$RANDOM"
-            mkdir -p "$tmpcfg"
-          fi
+    # Make Helix look there for config
+    export XDG_CONFIG_HOME="$tmpcfg"
 
-          mkdir -p "$tmpcfg/helix"
+    # Just run Helix directly, no wrappers
+    exec ${pkgs.helix}/bin/hx "$@"
 
-          ln -s '${cfgLangs}' "$tmpcfg/helix/languages.toml"
-          ln -s "$cfgFile"     "$tmpcfg/helix/config.toml"
-
-          if [ -d "$HOME/.config/helix/themes" ]; then
-            ln -s "$HOME/.config/helix/themes" "$tmpcfg/helix/themes"
-          fi
-
-          unset HELIX_RUNTIME
-          export XDG_CONFIG_HOME="$tmpcfg"
-
-          exec ${wrapped.wrapper}/bin/hx "$@"
         '';
       in {
         packages.default = launcher;
