@@ -1,0 +1,67 @@
+name: Auto-update flake
+
+on:
+  schedule:
+    # Every Monday at 04:15 UTC (which is 05:15 CET for you in winter)
+    - cron: "0 0 */3 * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: auto-update-flake
+  cancel-in-progress: true
+
+jobs:
+  update:
+    # Use the label of your runner (the quick start examples use "docker")
+    runs-on: docker # <- adjust if your runner label is different
+    container:
+      image: alpine:latest
+    permissions:
+      contents: write # allow pushing back to the repo
+    env:
+      NIX_CONFIG: experimental-features = nix-command flakes
+    
+    steps:
+      - name: Install node
+        run: |
+          apk add --no-cache nodejs npm git bash openssh-client ca-certificates nix
+
+      # - name: Enable fast caches (optional but nice)
+      #   uses: https://github.com/DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Checkout
+        # Prefer fully qualified URLs for actions on Forgejo
+        uses: https://data.forgejo.org/actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Format Flake
+        run: |
+          nix fmt
+          
+      - name: Update flake.lock
+        id: update
+        env:
+          NIX_CONFIG: experimental-features = nix-command flakes
+        run: |
+          set -eu
+          nix flake update
+          if git diff --quiet --exit-code flake.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: nix flake check
+        if: steps.update.outputs.changed == 'true'
+        env:
+          NIX_CONFIG: experimental-features = nix-command flakes
+        run: nix flake check --show-trace --print-build-logs
+
+      - name: Commit & push lockfile
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          git config user.name  "Forgejo Actions"
+          git config user.email "ci@local"
+          git add flake.lock
+          git commit -m "chore(flake): update inputs"
+          git push
